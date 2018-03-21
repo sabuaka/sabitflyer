@@ -129,3 +129,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+# ***** for user *****
+# uncommit files
+secret_*
