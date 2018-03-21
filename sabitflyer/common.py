@@ -1,8 +1,18 @@
-def error_parser(json_dict):
-    
-    if 'status' in json_dict.keys():
-        errmsg = str(json_dict)
-        raise Exception(errmsg)
+def error_parser(response):
+
+    try:
+        res_json = response.json()
+    except:
+        res_json = None
+
+    if response.status_code == 200:  # OK
+        return res_json
     else:
-        #No error
-        return json_dict
+        if res_json is not None:
+            raise Exception(res_json)
+        else:
+            errmsg = str('レスポンスを取得できませんでした。')
+            raise Exception(errmsg)
+
+    return None
+
