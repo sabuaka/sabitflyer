@@ -8,5 +8,5 @@ setup(
     author='sabuaka',
     author_email='sabuaka-fx@hotmail.com',
     url="https://github.com/sabuaka/sabitflyer",
-    install_requires=['requests', 'urllib']
+    install_requires=['requests', 'urllib3']
 )
