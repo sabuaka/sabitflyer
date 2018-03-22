@@ -17,31 +17,31 @@ class public_api(object):
         query = ''
         return self.__query(self.__api_endpoint + path + query)    
 
-    def get_depth(self, pair='BTC_JPY'):
+    def get_depth(self, pair):
         ''' 板情報の取得 '''
         path = '/v1/getboard'
         query = '?product_code=' + pair
         return self.__query(self.__api_endpoint + path + query)
     
-    def get_ticker(self, pair='BTC_JPY'):
+    def get_ticker(self, pair):
         '''Tickerの取得'''
         path = '/v1/getticker'
         query = '?product_code=' + pair
         return self.__query(self.__api_endpoint + path + query)
 
-    def get_executions(self, pair='BTC_JPY'):
+    def get_executions(self, pair):
         ''' 約定履歴の取得 '''
         path = '/v1/getexecutions'
         query = '?product_code=' + pair
         return self.__query(self.__api_endpoint + path + query)
 
-    def get_boardstate(self, pair='BTC_JPY'):
+    def get_boardstate(self, pair):
         ''' 板の状態の取得 '''
         path = '/v1/getboardstate'
         query = '?product_code=' + pair
         return self.__query(self.__api_endpoint + path + query)
 
-    def get_health(self, pair='BTC_JPY'):
+    def get_health(self, pair):
         ''' 取引所の状態の取得 '''
         path = '/v1/gethealth'
         query = '?product_code=' + pair
