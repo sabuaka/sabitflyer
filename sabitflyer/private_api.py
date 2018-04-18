@@ -50,6 +50,21 @@ class private_api(object):
         '''API キーの権限を取得'''
         path = '/v1/me/getpermissions'
         return self.__get_query(path,{})
+    
+    def get_getbalance(self):
+        '''資産残高を取得'''
+        path = '/v1/me/getbalance'
+        return self.__get_query(path,{})
+
+    def get_getcollateral(self):
+        '''証拠金の状態を取得'''
+        path = '/v1/me/getcollateral'
+        return self.__get_query(path,{})
+
+    def get_getcollateralaccounts(self):
+        '''証拠金の状態を取得'''
+        path = '/v1/me/getcollateralaccounts'
+        return self.__get_query(path,{})
 
     def get_deposits(self, *, count=None, before=None, after=None):
         '''入金履歴を取得'''
@@ -147,3 +162,9 @@ class private_api(object):
     def send_cancelchildorder_id(self, product_code, child_order_id):
         '''[EXTRA]child_order_idで指定した注文をキャンセルする'''
         return self.send_cancelchildorder(product_code, child_order_id=child_order_id)
+
+    def get_getpositions(self, product_code):
+        '''建玉の一覧を取得'''
+        path = '/v1/me/getpositions'
+        query_dct ={'product_code': product_code}
+        return self.__get_query(path, query_dct)
