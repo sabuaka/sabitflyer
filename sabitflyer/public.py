@@ -1,13 +1,18 @@
+# -*- coding: utf-8 -*-
+'''public API module'''
+
 import requests
 from .common import error_parser
 
-class public_api(object):
+
+class PublicAPI(object):
+    '''public API class'''
 
     def __init__(self):
         self.__api_endpoint = "https://api.bitflyer.jp"
 
     def __query(self, query_url):
-
+        '''query'''
         response = requests.get(query_url)
         return error_parser(response)
 
@@ -15,14 +20,14 @@ class public_api(object):
         '''マーケットの一覧取得'''
         path = '/v1/getmarkets'
         query = ''
-        return self.__query(self.__api_endpoint + path + query)    
+        return self.__query(self.__api_endpoint + path + query)
 
     def get_depth(self, pair):
         ''' 板情報の取得 '''
         path = '/v1/getboard'
         query = '?product_code=' + pair
         return self.__query(self.__api_endpoint + path + query)
-    
+
     def get_ticker(self, pair):
         '''Tickerの取得'''
         path = '/v1/getticker'
