@@ -72,7 +72,7 @@ class BrokerAPI(object):
 
     def __init__(self, pair, key, secret, log=True):
         """イニシャライザ"""
-        self.broker_name = 'bitflayer'
+        self.broker_name = 'bitflyer'
         self.__trade_pair = pair
 
         self.__api_key = key

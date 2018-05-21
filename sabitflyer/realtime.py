@@ -8,7 +8,7 @@ import websocket
 
 class RealtimeAPI(object):
     '''
-    Realtime API for Bitflayer by JSON-RPC 2.0 over WebSocket
+    Realtime API for bitFlyer by JSON-RPC 2.0 over WebSocket
 
     *** The description of callback ***
     on_message and on_close are normal callbacks from websocket.
