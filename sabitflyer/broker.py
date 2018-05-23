@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 '''取引所アクセスモジュール'''
 import os
+from datetime import datetime
 from enum import Enum
 from .common import get_dt_short, get_dt_long, n2d
 from .private import PrivateAPI
@@ -70,6 +71,36 @@ class BrokerAPI(object):
         ORDER_SELL_LIMIT = 'ORDER_SELL_LIMIT'
         ORDER_CANCEL = 'ORDER_CANCEL'
 
+    class OrderInfo(object):
+        '''order information class'''
+        order_id = None
+        order_pair = None
+        order_side = None
+        order_type = None
+        order_state = None
+        order_price = None
+        order_amount = None
+        executed_ave_price = None
+        executed_amount = None
+        executed_commission = None
+        canceled_amount = None
+        expire_date = None
+        order_date = None
+
+        @property
+        def remaining_amount(self):
+            '''[property] remaining amount'''
+            if self.order_amount is None or self.executed_amount is None:
+                return None
+            return self.order_amount - self.executed_amount
+
+        @property
+        def executed_actual_amount(self):
+            '''[property] actual amount'''
+            if self.executed_amount is None or self.executed_commission is None:
+                return None
+            return self.executed_amount - self.executed_commission
+
     def __init__(self, pair, key, secret, log=True):
         """イニシャライザ"""
         self.broker_name = 'bitflyer'
@@ -119,6 +150,43 @@ class BrokerAPI(object):
             with open(self.__log_path, 'a') as flog:
                 flog.writelines(wstr)
 
+    def __str2side(self, str_side):
+        if str_side == self.OrderSide.BUY.value:
+            return self.OrderSide.BUY
+        elif str_side == self.OrderSide.SELL.value:
+            return self.OrderSide.SELL
+        return None
+
+    def __str2type(self, str_type):
+        if str_type == self.OrderType.LIMIT.value:
+            return self.OrderType.LIMIT
+        elif str_type == self.OrderType.MARKET.value:
+            return self.OrderType.MARKET
+        return None
+
+    def __str2dt(self, str_dt):
+        try:
+            TIMESTAMP_FORMAT = '%Y-%m-%dT%H:%M:%S'
+            return datetime.strptime(str_dt[0:18], TIMESTAMP_FORMAT)
+        except:
+            return None
+
+    def __analize_state(self, str_state, executed_amount):
+        if str_state == 'ACTIVE':
+            if executed_amount > 0:
+                return self.OrderStatus.PARTIALLY_FILLED
+            else:
+                return self.OrderStatus.UNFILLED
+        elif str_state == 'COMPLETED':
+            return self.OrderStatus.FULLY_FILLED
+        elif str_state == 'CANCELED':
+            if executed_amount > 0:
+                return self.OrderStatus.CANCELED_PARTIALLY_FILLED
+            else:
+                return self.OrderStatus.CANCELED_UNFILLED
+        else:   # EXPIRED, REJECTED
+            return self.OrderStatus.CANCELED_UNFILLED
+
     # -------------------------------------------------------------------------
     # Private API
     # -------------------------------------------------------------------------
@@ -163,66 +231,30 @@ class BrokerAPI(object):
             rtn_assets = None
         return result, rtn_assets
 
-    class OrderInfo():
-        '''order information class'''
-        order_id = None
-        pair = None
-        side = None
-        order_type = None
-        order_price = None
-        order_size = None
-        executed_average_price = None
-        ordered_at = None
-        executed_amount = None
-        status = None
-
-        @property
-        def remaining_amount(self):
-            '''[property] remaining amount'''
-            if self.order_size is None or self.executed_amount is None:
-                return None
-            return self.order_size - self.executed_amount
-
     def order_check_detail(self, order_id):
         """注文状況の詳細を取得"""
         result = False
         rtn_order = None
         try:
-            res_info = self.prv_api.get_childorders(
+            res_infos = self.prv_api.get_childorders(
                 self.trade_pair, child_order_acceptance_id=order_id)
-            if len(res_info) > 0:  # pylint: disable-msg=C1801
-                res_order = res_info[0]
+            if len(res_infos) > 0:  # pylint: disable-msg=C1801
+                info = res_infos[0]
                 rtn_order = self.OrderInfo()
-                rtn_order.order_id = res_order['child_order_acceptance_id']
-                rtn_order.pair = res_order['product_code']
-                if res_order['side'] == self.OrderSide.BUY.value:
-                    rtn_order.side = self.OrderSide.BUY
-                else:
-                    rtn_order.side = self.OrderSide.SELL
-                if res_order['child_order_type'] == self.OrderType.LIMIT.value:
-                    rtn_order.order_type = self.OrderType.LIMIT
-                else:
-                    rtn_order.order_type = self.OrderType.MARKET
-                rtn_order.order_price = n2d(res_order['price'])
-                rtn_order.order_size = n2d(res_order['size'])
-                rtn_order.executed_average_price = n2d(res_order['average_price'])
-                rtn_order.ordered_at = res_order['child_order_date']
-                rtn_order.executed_amount = n2d(res_order['executed_size'])
-                order_state = res_order['child_order_state']
-                if order_state == 'ACTIVE':
-                    if rtn_order.executed_amount > 0:
-                        rtn_order.status = self.OrderStatus.PARTIALLY_FILLED
-                    else:
-                        rtn_order.status = self.OrderStatus.UNFILLED
-                elif order_state == 'COMPLETED':
-                    rtn_order.status = self.OrderStatus.FULLY_FILLED
-                elif order_state == 'CANCELED':
-                    if rtn_order.executed_amount > 0:
-                        rtn_order.status = self.OrderStatus.CANCELED_PARTIALLY_FILLED
-                    else:
-                        rtn_order.status = self.OrderStatus.CANCELED_UNFILLED
-                else:   # EXPIRED, REJECTED
-                    rtn_order.status = self.OrderStatus.CANCELED_UNFILLED
+                rtn_order.order_id = info['child_order_acceptance_id']
+                rtn_order.order_pair = info['product_code']
+                rtn_order.order_side = self.__str2side(info['side'])
+                rtn_order.order_type = self.__str2type(info['child_order_type'])
+                rtn_order.order_price = n2d(info['price'])
+                rtn_order.order_amount = n2d(info['size'])
+                rtn_order.executed_ave_price = n2d(info['average_price'])
+                rtn_order.executed_amount = n2d(info['executed_size'])
+                rtn_order.executed_commission = n2d(info['total_commission'])
+                rtn_order.canceled_amount = n2d(info['cancel_size'])
+                rtn_order.expire_date = self.__str2dt(info['expire_date'])
+                rtn_order.order_date = self.__str2dt(info['child_order_date'])
+                rtn_order.order_state = self.__analize_state(info['child_order_state'],
+                                                             rtn_order.executed_amount)
                 result = True
             else:
                 result = False
