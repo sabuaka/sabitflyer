@@ -36,13 +36,14 @@ class BrokerAPI(object):
         LIMIT = 'LIMIT'
         MARKET = 'MARKET'
 
-    class OrderStatus(Enum):
-        '''enumeration of order status'''
+    class OrderState(Enum):
+        '''enumeration of order state'''
         UNFILLED = 'ACTIVE'                     # 注文中
         PARTIALLY_FILLED = 'ACTIVE'             # 注文中(一部約定)
         FULLY_FILLED = 'COMPLETED'              # 約定済み
         CANCELED_UNFILLED = 'CANCELED'          # 取消済(EXPIRED,REJECTED含む)
         CANCELED_PARTIALLY_FILLED = 'CANCELED'  # 取消済(一部約定)
+        UNKNOWN = 'UNKNOWN'                     # 不明
 
     class HealthStatus(Enum):
         '''enumeration of health status'''
@@ -174,18 +175,18 @@ class BrokerAPI(object):
     def __analize_state(self, str_state, executed_amount):
         if str_state == 'ACTIVE':
             if executed_amount > 0:
-                return self.OrderStatus.PARTIALLY_FILLED
+                return self.OrderState.PARTIALLY_FILLED
             else:
-                return self.OrderStatus.UNFILLED
+                return self.OrderState.UNFILLED
         elif str_state == 'COMPLETED':
-            return self.OrderStatus.FULLY_FILLED
+            return self.OrderState.FULLY_FILLED
         elif str_state == 'CANCELED':
             if executed_amount > 0:
-                return self.OrderStatus.CANCELED_PARTIALLY_FILLED
+                return self.OrderState.CANCELED_PARTIALLY_FILLED
             else:
-                return self.OrderStatus.CANCELED_UNFILLED
+                return self.OrderState.CANCELED_UNFILLED
         else:   # EXPIRED, REJECTED
-            return self.OrderStatus.CANCELED_UNFILLED
+            return self.OrderState.CANCELED_UNFILLED
 
     # -------------------------------------------------------------------------
     # Private API
@@ -258,7 +259,8 @@ class BrokerAPI(object):
                 result = True
             else:
                 result = True
-                rtn_order = None
+                rtn_order = self.OrderInfo()
+                rtn_order.order_state = self.OrderState.UNKNOWN
         except:     # pylint: disable-msg=W0702
             result = False
             rtn_order = None
