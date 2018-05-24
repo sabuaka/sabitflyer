@@ -257,7 +257,7 @@ class BrokerAPI(object):
                                                              rtn_order.executed_amount)
                 result = True
             else:
-                result = False
+                result = True
                 rtn_order = None
         except:     # pylint: disable-msg=W0702
             result = False
