@@ -2,7 +2,7 @@
 '''取引所アクセスモジュール'''
 import os
 from datetime import datetime
-from enum import Enum
+from enum import Enum, IntEnum, auto
 from .common import get_dt_short, get_dt_long, n2d
 from .private import PrivateAPI
 from .public import PublicAPI
@@ -36,14 +36,14 @@ class BrokerAPI(object):
         LIMIT = 'LIMIT'
         MARKET = 'MARKET'
 
-    class OrderState(Enum):
+    class OrderState(IntEnum):
         '''enumeration of order state'''
-        UNFILLED = 'ACTIVE'                     # 注文中
-        PARTIALLY_FILLED = 'ACTIVE'             # 注文中(一部約定)
-        FULLY_FILLED = 'COMPLETED'              # 約定済み
-        CANCELED_UNFILLED = 'CANCELED'          # 取消済(EXPIRED,REJECTED含む)
-        CANCELED_PARTIALLY_FILLED = 'CANCELED'  # 取消済(一部約定)
-        UNKNOWN = 'UNKNOWN'                     # 不明
+        UNFILLED = auto()                   # 注文中
+        PARTIALLY_FILLED = auto()           # 注文中(一部約定)
+        FULLY_FILLED = auto()               # 約定済み
+        CANCELED_UNFILLED = auto()          # 取消済(EXPIRED,REJECTED含む)
+        CANCELED_PARTIALLY_FILLED = auto()  # 取消済(一部約定)
+        UNKNOWN = auto()                    # 不明
 
     class HealthStatus(Enum):
         '''enumeration of health status'''
