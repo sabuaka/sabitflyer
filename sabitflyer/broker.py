@@ -102,16 +102,20 @@ class BrokerAPI(object):
                 return None
             return self.executed_amount - self.executed_commission
 
-    def __init__(self, pair, key, secret, log=True):
+    def __init__(self, pair, key, secret, log=True, *, get_timeout=None, post_timeout=None):
         """イニシャライザ"""
         self.broker_name = 'bitflyer'
         self.__trade_pair = pair
 
         self.__api_key = key
         self.__api_secret = secret
-        self.__prv_api = PrivateAPI(self.__api_key, self.__api_secret)
-        self.__log = log
+        self.__get_timeout = get_timeout
+        self.__post_timeout = post_timeout
+        self.__prv_api = PrivateAPI(self.__api_key, self.__api_secret,
+                                    get_timeout=self.__get_timeout,
+                                    post_timeout=self.__post_timeout)
 
+        self.__log = log
         if self.__log:
             log_dir = './log/' + self.broker_name + '/'
             if not os.path.exists(log_dir):
@@ -274,7 +278,7 @@ class BrokerAPI(object):
         result = False
         res_dct = None
         try:
-            res_dct = PublicAPI().get_markets()
+            res_dct = PublicAPI(timeout=self.__get_timeout).get_markets()
             result = True
         except:     # pylint: disable-msg=W0702
             result = False
@@ -286,7 +290,7 @@ class BrokerAPI(object):
         result = False
         res_dct = None
         try:
-            res_dct = PublicAPI().get_depth(self.trade_pair)
+            res_dct = PublicAPI(timeout=self.__get_timeout).get_depth(self.trade_pair)
             result = True
         except:     # pylint: disable-msg=W0702
             result = False
@@ -298,7 +302,7 @@ class BrokerAPI(object):
         result = False
         res_dct = None
         try:
-            res_dct = PublicAPI().get_ticker(self.trade_pair)
+            res_dct = PublicAPI(timeout=self.__get_timeout).get_ticker(self.trade_pair)
             result = True
         except:     # pylint: disable-msg=W0702
             result = False
@@ -310,7 +314,7 @@ class BrokerAPI(object):
         result = False
         res_dct = None
         try:
-            res_dct = PublicAPI().get_executions(self.trade_pair)
+            res_dct = PublicAPI(timeout=self.__get_timeout).get_executions(self.trade_pair)
             result = True
         except:     # pylint: disable-msg=W0702
             result = False
@@ -339,7 +343,7 @@ class BrokerAPI(object):
         health = self.HealthStatus.STOP
         state = self.StateStatus.CLOSED
         try:
-            res_dct = PublicAPI().get_boardstate(self.trade_pair)
+            res_dct = PublicAPI(timeout=self.__get_timeout).get_boardstate(self.trade_pair)
             health = self.__cvt_status_health(res_dct['health'])
             state = self.__cvt_status_state(res_dct['state'])
             result = True
@@ -354,7 +358,7 @@ class BrokerAPI(object):
         result = False
         health = self.HealthStatus.STOP
         try:
-            res_dct = PublicAPI().get_health(self.trade_pair)
+            res_dct = PublicAPI(timeout=self.__get_timeout).get_health(self.trade_pair)
             health = self.__cvt_status_health(res_dct['status'])
             result = True
         except:     # pylint: disable-msg=W0702
@@ -367,13 +371,16 @@ class BrokerAPI(object):
         result = False
         res_dct = None
         try:
-            res_dct = PublicAPI().get_chats()
+            res_dct = PublicAPI(timeout=self.__get_timeout).get_chats()
             result = True
         except:     # pylint: disable-msg=W0702
             result = False
             res_dct = None
         return result, res_dct
 
+    # -------------------------------------------------------------------------
+    # Private API
+    # -------------------------------------------------------------------------
     def order_buy_limit(self, price, amount):
         '''指値買い注文を出す'''
         result = False

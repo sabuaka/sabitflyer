@@ -8,12 +8,13 @@ from .common import error_parser
 class PublicAPI(object):
     '''public API class'''
 
-    def __init__(self):
+    def __init__(self, *, timeout=None):
         self.__api_endpoint = "https://api.bitflyer.jp"
+        self.__timeout = timeout
 
     def __query(self, query_url):
         '''query'''
-        response = requests.get(query_url)
+        response = requests.get(query_url, timeout=self.__timeout)
         return error_parser(response)
 
     def get_markets(self):

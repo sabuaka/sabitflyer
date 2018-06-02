@@ -12,11 +12,13 @@ from .common import error_parser
 class PrivateAPI(object):
     '''private API class'''
 
-    def __init__(self, api_key, api_secret):
+    def __init__(self, api_key, api_secret, *, get_timeout=None, post_timeout=None):
         '''イニシャライザー'''
         self.__api_endpoint = "https://api.bitflyer.jp"
         self.__api_key = api_key
         self.__api_secret = api_secret
+        self.__get_timeout = get_timeout
+        self.__post_timeout = post_timeout
 
     def __make_header(self, query_data):
         '''リクエストヘッダーの生成'''
@@ -39,7 +41,7 @@ class PrivateAPI(object):
             query = '?' + urlencode(query_dct)
         headers = self.__make_header('GET' + path + query)
         uri = self.__api_endpoint + path + query
-        response = requests.get(uri, headers=headers)
+        response = requests.get(uri, headers=headers, timeout=self.__get_timeout)
         return error_parser(response)
 
     def __post_query(self, path, query_dct):
@@ -49,7 +51,7 @@ class PrivateAPI(object):
             data = json.dumps(query_dct)
         headers = self.__make_header('POST' + path + data)
         uri = self.__api_endpoint + path
-        response = requests.post(uri, data=data, headers=headers)
+        response = requests.post(uri, data=data, headers=headers, timeout=self.__post_timeout)
         return error_parser(response)
 
     def get_permissions(self):
