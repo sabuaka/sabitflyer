@@ -193,7 +193,7 @@ class RealtimeAPI(object):
                                            on_message=self.__ws_on_message,
                                            on_open=self.__ws_on_open,
                                            on_close=self.__ws_on_close)
-        self.__ws.run_forever()
+        self.__ws.run_forever(ping_interval=30, ping_timeout=10)
 
     def stop(self):
         '''To stop listening'''
