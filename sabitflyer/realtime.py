@@ -83,12 +83,16 @@ class RealtimeAPI(object):
 
     def __init__(self,
                  channel_list,
+                 *,
                  on_message=None,
                  on_message_board=None,
                  on_message_board_snapshot=None,
                  on_message_ticker=None,
                  on_message_executions=None,
-                 on_close=None):
+                 on_close=None,
+                 on_error=None,
+                 ping_interval=30,
+                 ping_timeout=10):
 
         # callback
         self.__cb_on_message = on_message
@@ -97,6 +101,7 @@ class RealtimeAPI(object):
         self.__cb_on_message_ticker = on_message_ticker
         self.__cb_on_message_executions = on_message_executions
         self.__cb_on_close = on_close
+        self.__cb_on_error = on_error
 
         # listen channels
         self.listen_channels = []
@@ -105,6 +110,8 @@ class RealtimeAPI(object):
 
         # websocket
         self.__ws = None
+        self.__ws_ping_interval = ping_interval
+        self.__ws_ping_timeout = ping_timeout
 
     def __ws_on_open(self, ws):  # pylint: disable-msg=C0103
         for channel in self.listen_channels:
@@ -176,6 +183,9 @@ class RealtimeAPI(object):
     def __ws_on_close(self, _, *close_args):
         self.__callback(self.__cb_on_close, *close_args)
 
+    def __ws_on_error(self, _, e):
+        self.__callback(self.__cb_on_error, e)
+
     def __callback(self, callback, *args):
         if callback:
             try:
@@ -192,8 +202,10 @@ class RealtimeAPI(object):
         self.__ws = websocket.WebSocketApp(self.WS_URL,
                                            on_message=self.__ws_on_message,
                                            on_open=self.__ws_on_open,
-                                           on_close=self.__ws_on_close)
-        self.__ws.run_forever(ping_interval=30, ping_timeout=10)
+                                           on_close=self.__ws_on_close,
+                                           on_error=self.__ws_on_error)
+        self.__ws.run_forever(ping_interval=self.__ws_ping_interval,
+                              ping_timeout=self.__ws_ping_timeout)
 
     def stop(self):
         '''To stop listening'''
