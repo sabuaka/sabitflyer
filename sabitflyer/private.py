@@ -127,6 +127,45 @@ class PrivateAPI(object):
             query_dct['parent_order_state'] = parent_order_state
         return self.__get_query(path, query_dct)
 
+    def get_parentorder(self, *,
+                        parent_order_id=None,
+                        parent_order_acceptance_id=None):
+        '''get detail of parent order'''
+        path = '/v1/me/getparentorder'
+        query_dct = {}
+        if parent_order_id is not None:
+            query_dct['parent_order_id'] = parent_order_id
+        if parent_order_acceptance_id is not None:
+            query_dct['parent_order_acceptance_id'] = parent_order_acceptance_id
+        return self.__get_query(path, query_dct)
+
+    def send_parentorder(self, order_method, parameters,
+                         *, minute_to_expire=None, time_in_force=None):
+        '''新規特殊注文を出す'''
+        path = '/v1/me/sendparentorder'
+        query_dct = {
+            'order_method': order_method,
+            'parameters': parameters
+        }
+        if minute_to_expire is not None:
+            query_dct['minute_to_expire'] = minute_to_expire
+        if time_in_force is not None:
+            query_dct['time_in_force'] = time_in_force
+        return self.__post_query(path, query_dct)
+
+    def send_cancelparentorder(self, product_code,
+                               *,
+                               parent_order_acceptance_id=None,
+                               parent_order_id=None):
+        '''特殊注文をキャンセルする'''
+        path = '/v1/me/cancelparentorder'
+        query_dct = {'product_code': product_code}
+        if parent_order_acceptance_id is not None:
+            query_dct['parent_order_acceptance_id'] = parent_order_acceptance_id
+        if parent_order_id is not None:
+            query_dct['parent_order_id'] = parent_order_id
+        return self.__post_query(path, query_dct)
+
     def send_childorder(self, product_code,
                         child_order_type, side,
                         price, size,

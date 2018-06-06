@@ -33,8 +33,14 @@ class BrokerAPI(object):
 
     class OrderType(Enum):
         '''enumeration of order type'''
+        # normal order
         LIMIT = 'LIMIT'
         MARKET = 'MARKET'
+        # special order
+        SIMPLE = 'SIMPLE'
+        IFD = 'IFD'
+        OCO = 'OCO'
+        IFDOCO = 'IFDOCO'
 
     class OrderState(IntEnum):
         '''enumeration of order state'''
@@ -71,36 +77,9 @@ class BrokerAPI(object):
         ORDER_SELL_MARKET = 'ORDER_SELL_MARKET'
         ORDER_SELL_LIMIT = 'ORDER_SELL_LIMIT'
         ORDER_CANCEL = 'ORDER_CANCEL'
-
-    class OrderInfo(object):
-        '''order information class'''
-        order_id = None
-        order_pair = None
-        order_side = None
-        order_type = None
-        order_state = None
-        order_price = None
-        order_amount = None
-        executed_ave_price = None
-        executed_amount = None
-        executed_commission = None
-        canceled_amount = None
-        expire_date = None
-        order_date = None
-
-        @property
-        def remaining_amount(self):
-            '''[property] remaining amount'''
-            if self.order_amount is None or self.executed_amount is None:
-                return None
-            return self.order_amount - self.executed_amount
-
-        @property
-        def executed_actual_amount(self):
-            '''[property] actual amount'''
-            if self.executed_amount is None or self.executed_commission is None:
-                return None
-            return self.executed_amount - self.executed_commission
+        OCO_BUY_LIMIT_STOP = 'OCO_BUY_LIMIT_STOP'
+        OCO_SELL_LIMIT_STOP = 'OCO_SELL_LIMIT_STOP'
+        SPECIAL_ORDER_CANCEL = 'SPECIAL_ORDER_CANCEL'
 
     def __init__(self, pair, key, secret, log=True, *, get_timeout=None, post_timeout=None):
         """イニシャライザ"""
@@ -125,16 +104,14 @@ class BrokerAPI(object):
                                       + '_' + self.broker_name \
                                       + '_' + self.__trade_pair + '.csv'
             with open(self.__log_path, 'w') as flog:
-                header_list = {
-                    'date time',
-                    'event',
-                    'order id',
-                    'price',
-                    'amount',
-                    'success',
-                    'facility'
-                }
-                header_str = ','.join(header_list) + '\n'
+                header_str = ('date time'
+                              ',event'
+                              ',order id'
+                              ',price'
+                              ',amount'
+                              ',success'
+                              ',facility'
+                              '\n')
                 flog.writelines(header_str)
 
     def __logging_event(self, event,
@@ -154,43 +131,6 @@ class BrokerAPI(object):
 
             with open(self.__log_path, 'a') as flog:
                 flog.writelines(wstr)
-
-    def __str2side(self, str_side):
-        if str_side == self.OrderSide.BUY.value:
-            return self.OrderSide.BUY
-        elif str_side == self.OrderSide.SELL.value:
-            return self.OrderSide.SELL
-        return None
-
-    def __str2type(self, str_type):
-        if str_type == self.OrderType.LIMIT.value:
-            return self.OrderType.LIMIT
-        elif str_type == self.OrderType.MARKET.value:
-            return self.OrderType.MARKET
-        return None
-
-    def __str2dt(self, str_dt):
-        try:
-            TIMESTAMP_FORMAT = '%Y-%m-%dT%H:%M:%S'
-            return datetime.strptime(str_dt[0:18], TIMESTAMP_FORMAT)
-        except:
-            return None
-
-    def __analize_state(self, str_state, executed_amount):
-        if str_state == 'ACTIVE':
-            if executed_amount > 0:
-                return self.OrderState.PARTIALLY_FILLED
-            else:
-                return self.OrderState.UNFILLED
-        elif str_state == 'COMPLETED':
-            return self.OrderState.FULLY_FILLED
-        elif str_state == 'CANCELED':
-            if executed_amount > 0:
-                return self.OrderState.CANCELED_PARTIALLY_FILLED
-            else:
-                return self.OrderState.CANCELED_UNFILLED
-        else:   # EXPIRED, REJECTED
-            return self.OrderState.CANCELED_UNFILLED
 
     # -------------------------------------------------------------------------
     # Private API
@@ -244,26 +184,11 @@ class BrokerAPI(object):
             res_infos = self.prv_api.get_childorders(
                 self.trade_pair, child_order_acceptance_id=order_id)
             if len(res_infos) > 0:  # pylint: disable-msg=C1801
-                info = res_infos[0]
-                rtn_order = self.OrderInfo()
-                rtn_order.order_id = info['child_order_acceptance_id']
-                rtn_order.order_pair = info['product_code']
-                rtn_order.order_side = self.__str2side(info['side'])
-                rtn_order.order_type = self.__str2type(info['child_order_type'])
-                rtn_order.order_price = n2d(info['price'])
-                rtn_order.order_amount = n2d(info['size'])
-                rtn_order.executed_ave_price = n2d(info['average_price'])
-                rtn_order.executed_amount = n2d(info['executed_size'])
-                rtn_order.executed_commission = n2d(info['total_commission'])
-                rtn_order.canceled_amount = n2d(info['cancel_size'])
-                rtn_order.expire_date = self.__str2dt(info['expire_date'])
-                rtn_order.order_date = self.__str2dt(info['child_order_date'])
-                rtn_order.order_state = self.__analize_state(info['child_order_state'],
-                                                             rtn_order.executed_amount)
+                rtn_order = OrderInfo(res_infos[0])
                 result = True
             else:
                 result = True
-                rtn_order = self.OrderInfo()
+                rtn_order = OrderInfo()
                 rtn_order.order_state = self.OrderState.UNKNOWN
         except:     # pylint: disable-msg=W0702
             result = False
@@ -480,3 +405,274 @@ class BrokerAPI(object):
                              result, '')
 
         return result
+
+    class ConditionType(Enum):
+        '''特殊注文の執行条件'''
+        LIMIT = 'LIMIT'             # Limit order.
+        MARKET = 'MARKET'           # Market order.
+        STOP = 'STOP'               # Stop order.
+        STOP_LIMIT = 'STOP_LIMIT'   # Stop-limit order.
+        TRAIL = 'TRAIL'             # Trailing stop order.
+
+    def parent_aid_to_oid(self, acceptance_id):
+        '''Get parent_order_id from parent_order_acceptance_id'''
+        result = False
+        rtn_id = None
+        try:
+            res_info = self.__prv_api.get_parentorder(parent_order_acceptance_id=acceptance_id)
+            rtn_id = res_info['parent_order_id']
+            result = True
+        except:
+            result = False
+            rtn_id = None
+
+        return result, rtn_id
+
+    def so_check_details(self, parent_order_id):
+        '''check special order information'''
+        result = False
+        rtn_orders = None
+        try:
+            res_infos = self.prv_api.get_childorders(self.trade_pair,
+                                                     parent_order_id=parent_order_id)
+            rtn_orders = []
+            if len(res_infos) > 0:  # pylint: disable-msg=C1801
+                for info in res_infos:
+                    rtn_orders.append(OrderInfo(info))
+                result = True
+            else:
+                result = True
+                rtn_orders.append(OrderInfo())
+                rtn_orders[0].order_state = self.OrderState.UNKNOWN
+        except:     # pylint: disable-msg=W0702
+            result = False
+            rtn_orders = None
+        return result, rtn_orders
+
+    def so_mk_prms_limit(self, product_code, side, price, size) -> dict:
+        '''return parameters of dicttype parent order'''
+        res_dict = {
+            'product_code': product_code,
+            'condition_type': self.ConditionType.LIMIT.value,
+            'side': side,
+            'price': price,
+            'size': size
+        }
+        return res_dict
+
+    def so_mk_prms_stop(self, product_code, side, price, size) -> dict:
+        '''return parameters of dicttype parent order'''
+        res_dict = {
+            'product_code': product_code,
+            'condition_type': self.ConditionType.STOP.value,
+            'side': side,
+            'trigger_price': price,
+            'size': size
+        }
+        return res_dict
+
+    def so_oco_buy_limit_stop(self, o_price, s_price, amount):
+        '''oco type buying order of limit and trail'''
+        result = False
+        order_id = None
+        try:
+            # make order list
+            prms_order = self.so_mk_prms_limit(self.trade_pair,
+                                               self.OrderSide.BUY.value,
+                                               float(o_price),
+                                               float(amount))
+            prms_stop = self.so_mk_prms_stop(self.trade_pair,
+                                             self.OrderSide.BUY.value,
+                                             float(s_price),
+                                             float(amount))
+            parameters = [prms_order, prms_stop]
+
+            # send order
+            res_order = self.prv_api.send_parentorder(self.OrderType.OCO.value,
+                                                      parameters)
+            order_id = res_order['parent_order_acceptance_id']
+            result = True
+        except:
+            result = False
+            order_id = None
+
+        self.__logging_event(self.EventLog.OCO_BUY_LIMIT_STOP,
+                             order_id,
+                             o_price, amount,
+                             result, 'OCO1:LIMIT')
+        self.__logging_event(self.EventLog.OCO_BUY_LIMIT_STOP,
+                             order_id,
+                             s_price, amount,
+                             result, 'OCO2:STOP')
+
+        return result, order_id
+
+    def so_oco_sell_limit_stop(self, o_price, s_price, amount):
+        '''oco type selling order of limit and trail'''
+        result = False
+        order_id = None
+        try:
+            # make order list
+            prms_order = self.so_mk_prms_limit(self.trade_pair,
+                                               self.OrderSide.SELL.value,
+                                               float(o_price),
+                                               float(amount))
+            prms_stop = self.so_mk_prms_stop(self.trade_pair,
+                                             self.OrderSide.SELL.value,
+                                             float(s_price),
+                                             float(amount))
+            parameters = [prms_order, prms_stop]
+
+            # send order
+            res_order = self.prv_api.send_parentorder(self.OrderType.OCO.value,
+                                                      parameters)
+            order_id = res_order['parent_order_acceptance_id']
+            result = True
+        except:
+            result = False
+            order_id = None
+
+        self.__logging_event(self.EventLog.OCO_SELL_LIMIT_STOP,
+                             order_id,
+                             o_price, amount,
+                             result, 'OCO1:LIMIT')
+        self.__logging_event(self.EventLog.OCO_SELL_LIMIT_STOP,
+                             order_id,
+                             s_price, amount,
+                             result, 'OCO2:STOP')
+
+        return result, order_id
+
+    def so_cancel(self, *, parent_order_acceptance_id=None, parent_order_id=None):
+        '''cancel special order'''
+        result = False
+        memo = None
+        c_id = None
+        try:
+            if parent_order_acceptance_id is not None:
+                c_id = parent_order_acceptance_id
+                memo = 'parent_order_acceptance_id'
+                self.prv_api.send_cancelparentorder(
+                    self.trade_pair, parent_order_acceptance_id=parent_order_acceptance_id)
+                result = True
+
+            elif parent_order_id is not None:
+                c_id = parent_order_id
+                memo = 'parent_order_id'
+                self.prv_api.send_cancelparentorder(
+                    self.trade_pair, parent_order_id=parent_order_id)
+                result = True
+
+            else:
+                result = False
+
+        except:     # pylint: disable-msg=W0702
+            result = False
+
+        self.__logging_event(self.EventLog.SPECIAL_ORDER_CANCEL,
+                             c_id,
+                             None, None,
+                             result, memo)
+
+        return result
+
+
+class OrderInfo(object):
+    '''order information class'''
+    order_id = None
+    order_pair = None
+    order_side = None
+    order_type = None
+    order_state = None
+    order_price = None
+    order_amount = None
+    executed_ave_price = None
+    executed_amount = None
+    executed_commission = None
+    outstanding_amount = None
+    canceled_amount = None
+    expire_date = None
+    order_date = None
+
+    @property
+    def executed_actual_amount(self):
+        '''[property] actual amount'''
+        if self.executed_amount is None or self.executed_commission is None:
+            return None
+        return self.executed_amount - self.executed_commission
+
+    def __init__(self, info=None):
+        if info is not None:
+            self.order_id = info['child_order_acceptance_id']
+            self.order_pair = info['product_code']
+            self.order_side = self.__str2side(info['side'])
+            self.order_type = self.__str2type(info['child_order_type'])
+            self.order_price = n2d(info['price'])
+            self.order_amount = n2d(info['size'])
+            self.executed_ave_price = n2d(info['average_price'])
+            self.executed_amount = n2d(info['executed_size'])
+            self.executed_commission = n2d(info['total_commission'])
+            self.outstanding_amount = n2d(info['outstanding_size'])
+            self.canceled_amount = n2d(info['cancel_size'])
+            self.expire_date = self.__str2dt(info['expire_date'])
+            self.order_date = self.__str2dt(info['child_order_date'])
+            self.order_state = self.__analize_state(info['child_order_state'], self.executed_amount)
+
+    @staticmethod
+    def __str2side(str_side):
+        if str_side == BrokerAPI.OrderSide.BUY.value:
+            return BrokerAPI.OrderSide.BUY
+        elif str_side == BrokerAPI.OrderSide.SELL.value:
+            return BrokerAPI.OrderSide.SELL
+        return None
+
+    @staticmethod
+    def __str2type(str_type):
+        for ot in BrokerAPI.OrderType:
+            if ot.value == str_type:
+                return ot
+        return None
+
+    @staticmethod
+    def __str2dt(str_dt):
+        try:
+            TIMESTAMP_FORMAT = '%Y-%m-%dT%H:%M:%S'
+            return datetime.strptime(str_dt[0:18], TIMESTAMP_FORMAT)
+        except:
+            return None
+
+    @staticmethod
+    def __analize_state(str_state, executed_amount):
+        if str_state == 'ACTIVE':
+            if executed_amount > 0:
+                return BrokerAPI.OrderState.PARTIALLY_FILLED
+            else:
+                return BrokerAPI.OrderState.UNFILLED
+        elif str_state == 'COMPLETED':
+            return BrokerAPI.OrderState.FULLY_FILLED
+        elif str_state == 'CANCELED':
+            if executed_amount > 0:
+                return BrokerAPI.OrderState.CANCELED_PARTIALLY_FILLED
+            else:
+                return BrokerAPI.OrderState.CANCELED_UNFILLED
+        else:   # EXPIRED, REJECTED
+            return BrokerAPI.OrderState.CANCELED_UNFILLED
+
+    def out_shell(self):
+        '''Display information to shell'''
+        print('order_id', self.order_id, type(self.order_id))
+        print('order_pair', self.order_pair, type(self.order_pair))
+        print('order_side', self.order_side, type(self.order_side))
+        print('order_type', self.order_type, type(self.order_type))
+        print('order_state', self.order_state, type(self.order_state))
+        print('order_price', self.order_price, type(self.order_price))
+        print('order_amount', self.order_amount, type(self.order_amount))
+        print('executed_ave_price', self.executed_ave_price, type(self.executed_ave_price))
+        print('executed_amount', self.executed_amount, type(self.executed_amount))
+        print('executed_commission', self.executed_commission, type(self.executed_commission))
+        print('executed_actual_amount', self.executed_actual_amount,
+              type(self.executed_actual_amount))
+        print('outstanding_amount', self.outstanding_amount, type(self.outstanding_amount))
+        print('canceled_amount', self.canceled_amount, type(self.canceled_amount))
+        print('expire_date', self.expire_date, type(self.expire_date))
+        print('order_date', self.order_date, type(self.order_date))
