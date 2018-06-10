@@ -22,27 +22,37 @@ class BrokerFXAPI(BrokerAPI):
     # -------------------------------------------------------------------------
     class MarginTradingInfo(object):
         '''margin trading information'''
-        customer_margin = None      # 委託者証拠金(JPY)
-        maintenance_margin = None   # 維持証拠金(JPY)
-        margin_rate = None          # 証拠金維持率(%)
-        profit_loss = None          # 損益(JPY)
+        margin_deposit = None   # 預入証拠金(JPY)
+        required_margin = None  # 必要証拠金(JPY)
+        margin_rate = None      # 証拠金維持率(%)
+        profit_loss = None      # 損益(JPY)
+
+        def __init__(self, info=None):
+            if info is not None:
+                self.margin_deposit = n2d(info['collateral'])
+                self.required_margin = n2d(info['require_collateral'])
+                self.margin_rate = n2d(info['keep_rate'])
+                self.profit_loss = n2d(info['open_position_pnl'])
+
+        def out_shell(self):
+            '''Display information to shell'''
+            print('margin_deposit=%s' % str(self.margin_deposit))
+            print('required_margin=%s' % str(self.required_margin))
+            print('margin_rate=%s' % str(self.margin_rate))
+            print('profit_loss=%s' % str(self.profit_loss))
 
     def get_margin_trading(self):
         '''証拠金の状態を取得'''
         result = False
-        rtn_i_mt = None
+        rtn_mti = None
         try:
             res_cll = self.prv_api.get_getcollateral()
-            rtn_i_mt = self.MarginTradingInfo()
-            rtn_i_mt.customer_margin = n2d(res_cll['collateral'])
-            rtn_i_mt.maintenance_margin = n2d(res_cll['require_collateral'])
-            rtn_i_mt.margin_rate = n2d(res_cll['keep_rate'])
-            rtn_i_mt.profit_loss = n2d(res_cll['open_position_pnl'])
+            rtn_mti = self.MarginTradingInfo(res_cll)
             result = True
         except:     # pylint: disable-msg=W0702
             result = False
-            rtn_i_mt = None
-        return result, rtn_i_mt
+            rtn_mti = None
+        return result, rtn_mti
 
     def get_assets(self):
         '''資産残高を取得(PrivateAPI使用回数: 1 + pair数分 回)'''

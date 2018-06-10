@@ -26,7 +26,7 @@ def error_parser(response):
 
 def get_dt_short():
     """現在の日時を文字列(YYYYMMDDHHMMSS)で返す"""
-    return datetime.datetime.now().strftime('%Y%m%d%H%M')
+    return datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 
 
 def get_dt_long():
