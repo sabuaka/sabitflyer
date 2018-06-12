@@ -31,6 +31,15 @@ class BrokerAPI(object):
         BUY = 'BUY'
         SELL = 'SELL'
 
+    @staticmethod
+    def str2side(str_side):
+        '''Convert string to OrderSide type'''
+        if str_side == BrokerAPI.OrderSide.BUY.value:
+            return BrokerAPI.OrderSide.BUY
+        elif str_side == BrokerAPI.OrderSide.SELL.value:
+            return BrokerAPI.OrderSide.SELL
+        return None
+
     class OrderType(Enum):
         '''enumeration of order type'''
         # normal order
@@ -41,6 +50,14 @@ class BrokerAPI(object):
         IFD = 'IFD'
         OCO = 'OCO'
         IFDOCO = 'IFDOCO'
+
+    @staticmethod
+    def str2type(str_type):
+        '''Convert string to OrderType type'''
+        for ot in BrokerAPI.OrderType:
+            if ot.value == str_type:
+                return ot
+        return None
 
     class OrderState(IntEnum):
         '''enumeration of order state'''
@@ -80,6 +97,15 @@ class BrokerAPI(object):
         OCO_BUY_LIMIT_STOP = 'OCO_BUY_LIMIT_STOP'
         OCO_SELL_LIMIT_STOP = 'OCO_SELL_LIMIT_STOP'
         SPECIAL_ORDER_CANCEL = 'SPECIAL_ORDER_CANCEL'
+
+    @staticmethod
+    def str2dt(str_dt):
+        '''Convert string to datetime type'''
+        try:
+            TIMESTAMP_FORMAT = '%Y-%m-%dT%H:%M:%S'
+            return datetime.strptime(str_dt[0:18], TIMESTAMP_FORMAT)
+        except:
+            return None
 
     def __init__(self, pair, key, secret, log=True, *, get_timeout=None, post_timeout=None):
         """イニシャライザ"""
@@ -605,8 +631,8 @@ class OrderInfo(object):
         if info is not None:
             self.order_id = info['child_order_acceptance_id']
             self.order_pair = info['product_code']
-            self.order_side = self.__str2side(info['side'])
-            self.order_type = self.__str2type(info['child_order_type'])
+            self.order_side = BrokerAPI.str2side(info['side'])
+            self.order_type = BrokerAPI.str2type(info['child_order_type'])
             self.order_price = n2d(info['price'])
             self.order_amount = n2d(info['size'])
             self.executed_ave_price = n2d(info['average_price'])
@@ -614,32 +640,9 @@ class OrderInfo(object):
             self.executed_commission = n2d(info['total_commission'])
             self.outstanding_amount = n2d(info['outstanding_size'])
             self.canceled_amount = n2d(info['cancel_size'])
-            self.expire_date = self.__str2dt(info['expire_date'])
-            self.order_date = self.__str2dt(info['child_order_date'])
+            self.expire_date = BrokerAPI.str2dt(info['expire_date'])
+            self.order_date = BrokerAPI.str2dt(info['child_order_date'])
             self.order_state = self.__analize_state(info['child_order_state'], self.executed_amount)
-
-    @staticmethod
-    def __str2side(str_side):
-        if str_side == BrokerAPI.OrderSide.BUY.value:
-            return BrokerAPI.OrderSide.BUY
-        elif str_side == BrokerAPI.OrderSide.SELL.value:
-            return BrokerAPI.OrderSide.SELL
-        return None
-
-    @staticmethod
-    def __str2type(str_type):
-        for ot in BrokerAPI.OrderType:
-            if ot.value == str_type:
-                return ot
-        return None
-
-    @staticmethod
-    def __str2dt(str_dt):
-        try:
-            TIMESTAMP_FORMAT = '%Y-%m-%dT%H:%M:%S'
-            return datetime.strptime(str_dt[0:18], TIMESTAMP_FORMAT)
-        except:
-            return None
 
     @staticmethod
     def __analize_state(str_state, executed_amount):
