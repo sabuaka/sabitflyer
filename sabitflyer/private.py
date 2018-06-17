@@ -253,6 +253,12 @@ class PrivateAPI(object):
             product_code,
             child_order_id=child_order_id)
 
+    def send_cancelallchildorders(self, product_code):
+        '''全ての注文をキャンセルする'''
+        path = '/v1/me/cancelallchildorders'
+        query_dct = {'product_code': product_code}
+        return self.__post_query(path, query_dct)
+
     def get_getpositions(self, product_code):
         '''建玉の一覧を取得'''
         path = '/v1/me/getpositions'

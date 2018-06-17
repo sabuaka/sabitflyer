@@ -94,6 +94,7 @@ class BrokerAPI(object):
         ORDER_SELL_MARKET = 'ORDER_SELL_MARKET'
         ORDER_SELL_LIMIT = 'ORDER_SELL_LIMIT'
         ORDER_CANCEL = 'ORDER_CANCEL'
+        ORDER_ALL_CANCEL = 'ORDER_ALL_CANCEL'
         OCO_BUY_LIMIT_STOP = 'OCO_BUY_LIMIT_STOP'
         OCO_SELL_LIMIT_STOP = 'OCO_SELL_LIMIT_STOP'
         SPECIAL_ORDER_CANCEL = 'SPECIAL_ORDER_CANCEL'
@@ -431,6 +432,17 @@ class BrokerAPI(object):
                              result, '')
 
         return result
+
+    def order_all_cancel(self):
+        '''全ての注文をキャンセルする'''
+        result = False
+        try:
+            self.prv_api.send_cancelallchildorders(self.trade_pair)
+            result = True
+        except:     # pylint: disable-msg=W0702
+            result = False
+
+        self.__logging_event(self.EventLog.ORDER_ALL_CANCEL, None, None, None, result, '')
 
     class ConditionType(Enum):
         '''特殊注文の執行条件'''
