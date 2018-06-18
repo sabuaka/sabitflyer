@@ -443,6 +443,7 @@ class BrokerAPI(object):
             result = False
 
         self.__logging_event(self.EventLog.ORDER_ALL_CANCEL, None, None, None, result, '')
+        return result
 
     class ConditionType(Enum):
         '''特殊注文の執行条件'''
