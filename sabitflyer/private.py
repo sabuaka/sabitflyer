@@ -14,7 +14,7 @@ class PrivateAPI(object):
 
     def __init__(self, api_key, api_secret, *, get_timeout=None, post_timeout=None):
         '''イニシャライザー'''
-        self.__api_endpoint = "https://api.bitflyer.jp"
+        self.__api_endpoint = "https://api.bitflyer.com"
         self.__api_key = api_key
         self.__api_secret = api_secret
         self.__get_timeout = get_timeout

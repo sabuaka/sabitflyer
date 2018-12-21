@@ -9,7 +9,7 @@ class PublicAPI(object):
     '''public API class'''
 
     def __init__(self, *, timeout=None):
-        self.__api_endpoint = "https://api.bitflyer.jp"
+        self.__api_endpoint = "https://api.bitflyer.com"
         self.__timeout = timeout
 
     def __query(self, query_url):
