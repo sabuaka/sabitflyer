@@ -209,5 +209,6 @@ class RealtimeAPI(object):
 
     def stop(self):
         '''To stop listening'''
-        self.__ws.close()
+        if self.__ws is not None:
+            self.__ws.close()
         self.__ws = None

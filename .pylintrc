@@ -1,0 +1,9 @@
+[MESSAGES CONTROL]
+# C0103:Invalid constant name
+# C1801:Do not use len(SEQUENCE) as condition value
+# W0702:No exception type(s) specified
+disable=C0103,C1801,W0702
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=120
