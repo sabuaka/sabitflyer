@@ -273,7 +273,7 @@ class BrokerAPI(object):
             res_dct = None
         return result, res_dct
 
-    def __cvt_status_health(self, api_text):
+    def cvt_status_health(self, api_text):
         rtn_health = self.HealthStatus.STOP
         for obj in self.HealthStatus:
             if obj.value == api_text:
@@ -281,7 +281,7 @@ class BrokerAPI(object):
                 break
         return rtn_health
 
-    def __cvt_status_state(self, api_result):
+    def cvt_status_state(self, api_result):
         rtn_state = self.StateStatus.CLOSED
         for obj in self.StateStatus:
             if obj.value == api_result:
@@ -296,8 +296,8 @@ class BrokerAPI(object):
         state = self.StateStatus.CLOSED
         try:
             res_dct = PublicAPI(timeout=self.__get_timeout).get_boardstate(self.trade_pair)
-            health = self.__cvt_status_health(res_dct['health'])
-            state = self.__cvt_status_state(res_dct['state'])
+            health = self.cvt_status_health(res_dct['health'])
+            state = self.cvt_status_state(res_dct['state'])
             result = True
         except:     # pylint: disable-msg=W0702
             result = False
@@ -311,7 +311,7 @@ class BrokerAPI(object):
         health = self.HealthStatus.STOP
         try:
             res_dct = PublicAPI(timeout=self.__get_timeout).get_health(self.trade_pair)
-            health = self.__cvt_status_health(res_dct['status'])
+            health = self.cvt_status_health(res_dct['status'])
             result = True
         except:     # pylint: disable-msg=W0702
             result = False
