@@ -273,17 +273,19 @@ class BrokerAPI(object):
             res_dct = None
         return result, res_dct
 
-    def cvt_status_health(self, api_text):
-        rtn_health = self.HealthStatus.STOP
-        for obj in self.HealthStatus:
-            if obj.value == api_text:
+    @staticmethod
+    def cvt_status_health(api_result):
+        rtn_health = BrokerAPI.HealthStatus.STOP
+        for obj in BrokerAPI.HealthStatus:
+            if obj.value == api_result:
                 rtn_health = obj
                 break
         return rtn_health
 
-    def cvt_status_state(self, api_result):
-        rtn_state = self.StateStatus.CLOSED
-        for obj in self.StateStatus:
+    @staticmethod
+    def cvt_status_state(api_result):
+        rtn_state = BrokerAPI.StateStatus.CLOSED
+        for obj in BrokerAPI.StateStatus:
             if obj.value == api_result:
                 rtn_state = obj
                 break
