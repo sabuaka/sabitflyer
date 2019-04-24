@@ -17,6 +17,10 @@ class PublicAPI(object):
         response = requests.get(query_url, timeout=self.__timeout)
         return error_parser(response)
 
+    def get_by_url(self, url):
+        '''get by URL(include endpoint)'''
+        return self.__query(url)
+
     def get_markets(self):
         '''マーケットの一覧取得'''
         path = '/v1/getmarkets'
