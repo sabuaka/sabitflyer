@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 '''private API module'''
 import time
+from datetime import datetime
 import json
 from urllib.parse import urlencode
 from hashlib import sha256
@@ -19,6 +20,7 @@ class PrivateAPI(object):
         self.__api_secret = api_secret
         self.__get_timeout = get_timeout
         self.__post_timeout = post_timeout
+        self.__session = None
 
     def __make_header(self, query_data):
         '''リクエストヘッダーの生成'''
@@ -34,6 +36,11 @@ class PrivateAPI(object):
             'Content-Type': 'application/json'
         }
 
+    def __get_session(self):
+        if self.__session is None:
+            self.__session = requests.Session()
+        return self.__session
+
     def __get_query(self, path, query_dct):
         '''GET Method'''
         query = ''
@@ -41,8 +48,16 @@ class PrivateAPI(object):
             query = '?' + urlencode(query_dct)
         headers = self.__make_header('GET' + path + query)
         uri = self.__api_endpoint + path + query
-        response = requests.get(uri, headers=headers, timeout=self.__get_timeout)
+        try:
+            response = self.__get_session().get(uri, headers=headers, timeout=self.__get_timeout)
+        except requests.exceptions.ConnectionError:
+            # If session disconnect, reconnect the session and command retry.
+            with open('error_session', 'a') as ferr:
+                ferr.write(str(datetime.now()) + '\n')
+            self.__session = None
+            response = self.__get_session().get(uri, headers=headers, timeout=self.__get_timeout)
         return error_parser(response)
+
 
     def __post_query(self, path, query_dct):
         '''POST Method'''
@@ -51,7 +66,14 @@ class PrivateAPI(object):
             data = json.dumps(query_dct)
         headers = self.__make_header('POST' + path + data)
         uri = self.__api_endpoint + path
-        response = requests.post(uri, data=data, headers=headers, timeout=self.__post_timeout)
+        try:
+            response = self.__get_session().post(uri, data=data, headers=headers, timeout=self.__post_timeout)
+        except requests.exceptions.ConnectionError:
+            # If session disconnect, reconnect the session and command retry.
+            with open('error_session', 'a') as ferr:
+                ferr.write(str(datetime.now()) + '\n')
+            self.__session = None
+            response = self.__get_session().post(uri, data=data, headers=headers, timeout=self.__post_timeout)
         return error_parser(response)
 
     def get_permissions(self):

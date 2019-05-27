@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='sabitflyer',
     packages=['sabitflyer'],
-    version='3.2.3',
+    version='3.3.0',
     description='bitFlyer API Library for Python',
     author='sabuaka',
     author_email='sabuaka-fx@hotmail.com',
