@@ -52,7 +52,7 @@ class PrivateAPI(object):
             response = self.__get_session().get(uri, headers=headers, timeout=self.__get_timeout)
         except requests.exceptions.ConnectionError:
             # If session disconnect, reconnect the session and command retry.
-            with open('error_session', 'a') as ferr:
+            with open('error_session.log', 'a') as ferr:
                 ferr.write(str(datetime.now()) + '\n')
             self.__session = None
             response = self.__get_session().get(uri, headers=headers, timeout=self.__get_timeout)
@@ -70,7 +70,7 @@ class PrivateAPI(object):
             response = self.__get_session().post(uri, data=data, headers=headers, timeout=self.__post_timeout)
         except requests.exceptions.ConnectionError:
             # If session disconnect, reconnect the session and command retry.
-            with open('error_session', 'a') as ferr:
+            with open('error_session.log', 'a') as ferr:
                 ferr.write(str(datetime.now()) + '\n')
             self.__session = None
             response = self.__get_session().post(uri, data=data, headers=headers, timeout=self.__post_timeout)
