@@ -10,7 +10,7 @@ setup(
     url="https://github.com/sabuaka/sabitflyer",
     install_requires=[
         'requests==2.21.0',
-        'urllib3==1.24.3',
+        'urllib3==1.26.5',
         'websocket-client==0.48.0'
     ]
 )
